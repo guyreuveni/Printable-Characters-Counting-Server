@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
     /*Handlig server adress*/
     serv_ip = argv[1];
     serv_port = argv[2];
-    memset(&serv_addr, 0, sizeof(serv_addr));
+    memset(&serv_addr, 0, sizeof(struct sockaddr_in));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(atoi(serv_port));
     if (inet_pton(AF_INET, serv_ip, &(serv_addr.sin_addr.s_addr)) < 1)
