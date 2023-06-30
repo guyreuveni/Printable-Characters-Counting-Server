@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 
@@ -21,8 +20,8 @@ int main(int argc, char *argv[])
     char buf[BUF_SIZE];
     struct sockaddr_in serv_addr;
     struct stat fileStat;
-    unsigned int N, total_sent, not_written, total_sent_inner, not_read, total_read, C_network, C;
-    char *serv_ip, *serv_port, N_str[sizeof(N)];
+    unsigned int N, N_network, total_sent, not_written, total_sent_inner, not_read, total_read, C_network, C;
+    char *serv_ip, *serv_port, *file_name;
 
     if (argc != 4)
     {
@@ -31,14 +30,15 @@ int main(int argc, char *argv[])
     }
 
     /*Opening file and getting its length*/
-    fd = open(argv[3], O_RDONLY);
-    if (fd < 0)
+    file_name = argv[3];
+    file_fd = open(file_name, O_RDONLY);
+    if (file_fd < 0)
     {
         perror("Failed to open file\n");
         exit(1);
     }
 
-    if (stat(filename, &fileStat) == -1)
+    if (stat(file_name, &fileStat) < 0)
     {
         perror("Error getting file status");
         exit(1);
@@ -56,8 +56,8 @@ int main(int argc, char *argv[])
     }
 
     /*Handlig server adress*/
+    serv_ip = argv[1];
     serv_port = argv[2];
-    serv_ip = argv[3];
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(atoi(serv_port));
@@ -77,12 +77,12 @@ int main(int argc, char *argv[])
     /*Writing to the server*/
 
     /*Sending N - the file length*/
-    N_str = (char *)(&htonl(N));
-    not_written = sizeof(N_str);
+    N_network = htonl(N);
+    not_written = sizeof(unsigned int);
     total_sent = 0;
     while (not_written > 0)
     {
-        now_sent = write(sock_fd, N_str + total_sent, not_written);
+        now_sent = write(sock_fd, ((char *)(&N_network)) + total_sent, not_written);
         if (now_sent <= 0)
         {
             perror("Failed to send N\n");
@@ -110,9 +110,9 @@ int main(int argc, char *argv[])
         while (not_written_inner > 0)
         {
             now_sent = write(sock_fd, buf + total_sent_inner, not_written_inner);
-            if (now_sent <= 0)
+            if (now_sent < 0)
             {
-                perror("Failed to send N\n");
+                perror("Failed to send data\n");
                 exit(1);
             }
             total_sent_inner += now_sent;
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 
     /*Closing file*/
 
-    if (close(fd) < 0)
+    if (close(file_fd) < 0)
     {
         perror("Failed to close file\n");
         exit(1);
@@ -137,8 +137,8 @@ int main(int argc, char *argv[])
 
     while (not_read > 0)
     {
-        now_read = read(sock_fd, (char *)((&C_network) + total_read), not_read);
-        if (now_read <= 0)
+        now_read = read(sock_fd, ((char *)(&C_network)) + total_read, not_read);
+        if (now_read < 0)
         {
             perror("Failed to read C\n");
             exit(1);
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
     /*Closing socket*/
     if (close(sock_fd) < 0)
     {
-        perror("Failed to close file\n");
+        perror("Failed to close socket\n");
         exit(1);
     }
 
