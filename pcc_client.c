@@ -12,17 +12,17 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-int BUF_SIZE = 100000;
+ssize_t BUF_SIZE = 100000;
 
 int main(int argc, char *argv[])
 {
     int file_fd, sock_fd;
-    ssize_t now_sent;
+    ssize_t now_sent, not_written_inner, now_read;
     char buf[BUF_SIZE];
     struct sockaddr_in serv_addr;
     struct stat fileStat;
-    unsigned int N, total_sent, not_written;
-    char *serv_ip, *serv_port, *N_str;
+    unsigned int N, total_sent, not_written, total_sent_inner, not_read, total_read, C_network, C;
+    char *serv_ip, *serv_port, N_str[sizeof(N)];
 
     if (argc != 4)
     {
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 
     /*Sending N - the file length*/
     N_str = (char *)(&htonl(N));
-    not_written = 4;
+    not_written = sizeof(N_str);
     total_sent = 0;
     while (not_written > 0)
     {
@@ -97,5 +97,64 @@ int main(int argc, char *argv[])
     not_written = N;
     total_sent = 0;
 
-    return 0;
+    while (not_written > 0)
+    {
+        not_written_inner = read(file_fd, buf, BUF_SIZE);
+        if (not_written_inner < 0)
+        {
+            perror("Failed reading from file\n");
+            exit(1);
+        }
+        total_sent_inner = 0;
+
+        while (not_written_inner > 0)
+        {
+            now_sent = write(sock_fd, buf + total_sent_inner, not_written_inner);
+            if (now_sent <= 0)
+            {
+                perror("Failed to send N\n");
+                exit(1);
+            }
+            total_sent_inner += now_sent;
+            not_written_inner -= now_sent;
+            total_sent += now_sent;
+            not_written -= now_sent;
+        }
+    }
+
+    /*Closing file*/
+
+    if (close(fd) < 0)
+    {
+        perror("Failed to close file\n");
+        exit(1);
+    }
+
+    /*Getting from the server the number of printable chars*/
+
+    not_read = sizeof(unsigned int);
+    total_read = 0;
+
+    while (not_read > 0)
+    {
+        now_read = read(sock_fd, (char *)((&C_network) + total_read), not_read);
+        if (now_read <= 0)
+        {
+            perror("Failed to read C\n");
+            exit(1);
+        }
+        total_read += now_read;
+        not_read -= now_read;
+    }
+
+    /*Closing socket*/
+    if (close(sock_fd) < 0)
+    {
+        perror("Failed to close file\n");
+        exit(1);
+    }
+
+    C = ntohl(C_network);
+    printf("# of printable characters: %u\n", C);
+    exit(0);
 }
