@@ -123,11 +123,7 @@ int main(int argc, char *argv[])
 
     /*Closing file*/
 
-    if (close(file_fd) < 0)
-    {
-        perror("Failed to close file\n");
-        exit(1);
-    }
+    close(file_fd);
 
     /*Getting from the server the number of printable chars*/
 
@@ -147,11 +143,7 @@ int main(int argc, char *argv[])
     }
 
     /*Closing socket*/
-    if (close(sock_fd) < 0)
-    {
-        perror("Failed to close socket\n");
-        exit(1);
-    }
+    close(sock_fd);
 
     C = ntohl(C_network);
     printf("# of printable characters: %u\n", C);

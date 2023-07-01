@@ -59,6 +59,7 @@ int main(int argc, char const *argv[])
     unsigned int curr_client_printable_counter[127];
     ssize_t now_read, now_sent;
     char buf[BUF_SIZE];
+    int reuseaddr = 1;
 
     socklen_t addrsize = sizeof(struct sockaddr_in);
 
@@ -87,6 +88,13 @@ int main(int argc, char const *argv[])
     if (listening_sock_fd < 0)
     {
         perror("Failed to create the listening socket\n");
+        exit(1);
+    }
+
+    /*Setting the SO_REUSEADDR option*/
+    if (setsockopt(listening_sock_fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(int)) < 0)
+    {
+        perror("Failed to set SO_REUSEADDR option\n");
         exit(1);
     }
 
@@ -199,6 +207,11 @@ int main(int argc, char const *argv[])
             now_sent = write(con_fd, ((char *)(&pcc_counter_network)) + total_sent, not_written);
             if (now_sent < 0)
             {
+                if (errno == ECONNRESET || errno == ETIMEDOUT || errno == EPIPE)
+                {
+                    continue_to_the_next_client = 1;
+                    break;
+                }
                 perror("Failed to send N\n");
                 exit(1);
             }
@@ -206,12 +219,13 @@ int main(int argc, char const *argv[])
             not_written -= now_sent;
         }
 
-        /*Closing the connection*/
-        if (close(con_fd) < 0)
+        if (continue_to_the_next_client == 1)
         {
-            perror("Failed to close connection\n");
-            exit(1);
+            continue;
         }
+
+        /*Closing the connection*/
+        close(con_fd);
 
         /*updating the global pcc counter*/
         for (i = 32; i <= 126; i++)
