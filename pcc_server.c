@@ -93,7 +93,7 @@ int main(int argc, char const *argv[])
     }
 
     /*Setting up the server adress*/
-    serv_port = argc[1];
+    serv_port = argv[1];
     memset(&serv_addr, 0, addrsize);
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -117,7 +117,7 @@ int main(int argc, char const *argv[])
     while (its_time_to_terminate == 0)
     {
         /*Accepting a new client*/
-        con_fd = accept(listenfd, (struct sockaddr *)&peer_addr, &addrsize);
+        con_fd = accept(listening_sock_fd, (struct sockaddr *)&peer_addr, &addrsize);
         if (con_fd < 0)
         {
             perror("Accept failed\n");
@@ -198,7 +198,7 @@ int main(int argc, char const *argv[])
         total_sent = 0;
         while (not_written > 0)
         {
-            now_sent = write(sock_fd, ((char *)(&pcc_counter_network)) + total_sent, not_written);
+            now_sent = write(con_fd, ((char *)(&pcc_counter_network)) + total_sent, not_written);
             if (now_sent < 0)
             {
                 perror("Failed to send N\n");
@@ -209,7 +209,7 @@ int main(int argc, char const *argv[])
         }
 
         /*Closing the connection*/
-        if (close(sock_fd) < 0)
+        if (close(con_fd) < 0)
         {
             perror("Failed to close connection\n");
             exit(1);
