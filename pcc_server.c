@@ -161,6 +161,8 @@ int main(int argc, char const *argv[])
 
         if (continue_to_the_next_client == 1)
         {
+            close(con_fd);
+            client_is_being_proccesed = 0;
             continue;
         }
 
@@ -195,6 +197,8 @@ int main(int argc, char const *argv[])
 
         if (continue_to_the_next_client == 1)
         {
+            close(con_fd);
+            client_is_being_proccesed = 0;
             continue;
         }
 
@@ -221,6 +225,8 @@ int main(int argc, char const *argv[])
 
         if (continue_to_the_next_client == 1)
         {
+            close(con_fd);
+            client_is_being_proccesed = 0;
             continue;
         }
 
