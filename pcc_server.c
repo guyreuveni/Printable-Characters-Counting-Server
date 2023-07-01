@@ -29,13 +29,16 @@ void terminate()
 {
     int i;
 
-    if (printable_counter_is_initialized == 1)
+    if (printable_counter_is_initialized == 0)
     {
-        for (i = 32; i <= 126; i++)
-        {
-            printf("char '%c' : %u times\n", i, printable_counter[i]);
-        }
+        init_printable_counter();
     }
+
+    for (i = 32; i <= 126; i++)
+    {
+        printf("char '%c' : %u times\n", i, printable_counter[i]);
+    }
+
     exit(0);
 }
 
@@ -51,12 +54,12 @@ void handle_sigint(int sig)
 int main(int argc, char const *argv[])
 {
     struct sigaction sa_sigint;
-    int listening_sock_fd, con_fd, i;
+    int listening_sock_fd, con_fd, i, continue_to_the_next_client;
     struct sockaddr_in serv_addr, peer_addr;
     char *serv_port;
-    unsigned int pcc_counter, N, N_network, not_read, total_read;
+    unsigned int pcc_counter, pcc_counter_network, N, N_network, not_read, total_read, total_sent, not_written;
     unsigned int curr_client_printable_counter[127];
-    ssize_t now_read;
+    ssize_t now_read, now_sent;
     char buf[BUF_SIZE];
 
     socklen_t addrsize = sizeof(struct sockaddr_in);
@@ -122,6 +125,7 @@ int main(int argc, char const *argv[])
         }
         client_is_being_proccesed = 1;
         pcc_counter = 0;
+        continue_to_the_next_client = 0;
         for (i = 0; i <= 126; i++)
         {
             curr_client_printable_counter[i] = 0;
@@ -135,13 +139,23 @@ int main(int argc, char const *argv[])
         while (not_read > 0)
         {
             now_read = read(con_fd, ((char *)(&N_network)) + total_read, not_read);
-            if (now_read < 0)
+            if (now_read <= 0)
             {
+                if (now_read == 0 || errno == ECONNRESET || errno == ETIMEDOUT || errno == EPIPE)
+                {
+                    continue_to_the_next_client = 1;
+                    break;
+                }
                 perror("Failed to read N\n");
                 exit(1);
             }
             total_read += now_read;
             not_read -= now_read;
+        }
+
+        if (continue_to_the_next_client == 1)
+        {
+            continue;
         }
 
         N = ntohl(N_network);
@@ -152,9 +166,14 @@ int main(int argc, char const *argv[])
         while (total_read < N)
         {
             now_read = read(con_fd, buf, BUF_SIZE);
-            if (now_read < 0)
+            if (now_read <= 0)
             {
-                perror("Failed to read N\n");
+                if (now_read == 0 || errno == ECONNRESET || errno == ETIMEDOUT || errno == EPIPE)
+                {
+                    continue_to_the_next_client = 1;
+                    break;
+                }
+                perror("Failed to read data\n");
                 exit(1);
             }
             total_read += now_read;
@@ -168,11 +187,39 @@ int main(int argc, char const *argv[])
             }
         }
 
+        if (continue_to_the_next_client == 1)
+        {
+            continue;
+        }
+
         /*Sending to the client the pcc count*/
+        pcc_counter_network = htonl(pcc_counter);
+        not_written = sizeof(unsigned int);
+        total_sent = 0;
+        while (not_written > 0)
+        {
+            now_sent = write(sock_fd, ((char *)(&pcc_counter_network)) + total_sent, not_written);
+            if (now_sent < 0)
+            {
+                perror("Failed to send N\n");
+                exit(1);
+            }
+            total_sent += now_sent;
+            not_written -= now_sent;
+        }
 
         /*Closing the connection*/
+        if (close(sock_fd) < 0)
+        {
+            perror("Failed to close connection\n");
+            exit(1);
+        }
 
         /*updating the global pcc counter*/
+        for (i = 32; i <= 126; i++)
+        {
+            printable_counter[i] += curr_client_printable_counter[i];
+        }
 
         /*Setting client_is_being_proccesed flaf*/
         client_is_being_proccesed = 0;

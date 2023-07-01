@@ -43,9 +43,7 @@ int main(int argc, char *argv[])
         perror("Error getting file status");
         exit(1);
     }
-
     N = fileStat.st_size;
-    /*TODO: can we assume N > 0 ? */
 
     /*Creating socket*/
     sock_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -83,7 +81,7 @@ int main(int argc, char *argv[])
     while (not_written > 0)
     {
         now_sent = write(sock_fd, ((char *)(&N_network)) + total_sent, not_written);
-        if (now_sent <= 0)
+        if (now_sent < 0)
         {
             perror("Failed to send N\n");
             exit(1);
