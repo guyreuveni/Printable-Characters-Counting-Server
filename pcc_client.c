@@ -8,8 +8,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
-#include <fcntl.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 ssize_t BUF_SIZE = 100000;
 
@@ -21,7 +22,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in serv_addr;
     struct stat fileStat;
     unsigned int N, N_network, total_sent, not_written, total_sent_inner, not_read, total_read, C_network, C;
-    char *serv_ip, *serv_port, *file_name;
+    const char *serv_ip, *serv_port, *file_name;
 
     if (argc != 4)
     {

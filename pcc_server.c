@@ -1,13 +1,11 @@
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <signal.h>
 #include <errno.h>
-#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
 
 ssize_t BUF_SIZE = 100000;
 int client_is_being_proccesed = 0;
@@ -56,7 +54,7 @@ int main(int argc, char const *argv[])
     struct sigaction sa_sigint;
     int listening_sock_fd, con_fd, i, continue_to_the_next_client;
     struct sockaddr_in serv_addr, peer_addr;
-    char *serv_port;
+    const char *serv_port;
     unsigned int pcc_counter, pcc_counter_network, N, N_network, not_read, total_read, total_sent, not_written;
     unsigned int curr_client_printable_counter[127];
     ssize_t now_read, now_sent;
@@ -182,7 +180,7 @@ int main(int argc, char const *argv[])
                 if (32 <= buf[i] && buf[i] <= 126)
                 {
                     pcc_counter++;
-                    curr_client_printable_counter[buf[i]]++;
+                    curr_client_printable_counter[(int)buf[i]]++;
                 }
             }
         }
