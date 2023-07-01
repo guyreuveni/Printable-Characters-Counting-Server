@@ -148,8 +148,9 @@ int main(int argc, char const *argv[])
 
         /*Reading data from client*/
         total_read = 0;
-        
-        while (total_read < N){
+
+        while (total_read < N)
+        {
             now_read = read(con_fd, buf, BUF_SIZE);
             if (now_read < 0)
             {
@@ -157,7 +158,24 @@ int main(int argc, char const *argv[])
                 exit(1);
             }
             total_read += now_read;
+            for (i = 0; i < now_read; i++)
+            {
+                if (32 <= buf[i] && buf[i] <= 126)
+                {
+                    pcc_counter++;
+                    curr_client_printable_counter[buf[i]]++;
+                }
+            }
         }
+
+        /*Sending to the client the pcc count*/
+
+        /*Closing the connection*/
+
+        /*updating the global pcc counter*/
+
+        /*Setting client_is_being_proccesed flaf*/
+        client_is_being_proccesed = 0;
     }
 
     terminate();
